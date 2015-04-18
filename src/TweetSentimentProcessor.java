@@ -16,7 +16,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 public class TweetSentimentProcessor {
 	private static final String TweetQueueName = "TweetQueue";
 	
-	private final int ThreadPoolSize = 2;
+	private final int ThreadPoolSize = 10;
 	private AmazonSQS sqs;
 	private String queueUrl;
 	private ExecutorService executor = Executors.newFixedThreadPool(ThreadPoolSize);
@@ -41,19 +41,25 @@ public class TweetSentimentProcessor {
 	}
 	
 	public void beginReceivingMessages() {
-		while (true) {
-	        ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(10);
-	        List<Message> messages = sqs.receiveMessage(receiveMessageRequest.withMessageAttributeNames("TweetId")).getMessages();
-	        for (Message message : messages) {
-	        	String tweetId = message.getMessageAttributes().get("TweetId").getStringValue();
-	        	executor.execute(new WorkerThread(tweetId, message.getBody()));
-	        }
-	        try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		System.out.println("Beginning execution");
+		int id = 0;
+		while (id++ <= 100) {
+			executor.execute(new WorkerThread(id, sqs, queueUrl));
+			
+			
+//	        ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(10);
+//	        List<Message> messages = sqs.receiveMessage(receiveMessageRequest.withMessageAttributeNames("TweetId")).getMessages();
+//	        for (Message message : messages) {
+//	        	String tweetId = message.getMessageAttributes().get("TweetId").getStringValue();
+//	        	executor.execute(new WorkerThread(tweetId, message.getBody()));
+//	        }
+//	        try {
+//				Thread.sleep(1000);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
 		}
+		executor.shutdown();
 	}
 	
 	public static void main(String[] args) {
