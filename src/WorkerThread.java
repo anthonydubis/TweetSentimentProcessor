@@ -21,16 +21,16 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 public class WorkerThread implements Runnable {
 	private static final String apiKey = "4c4269e62c0a19c4fdc84b78093428881101a14b";
 	
-	private int id;
 	private AmazonSQS sqs;
 	private String queueUrl;
 	private Message message;
 	private Double sentiment;
+	private DBHelper dbHelper;
 	
-	public WorkerThread(int id, AmazonSQS sqs, String queueUrl) {
-		this.id = id;
+	public WorkerThread(AmazonSQS sqs, String queueUrl, DBHelper dbHelper) {
 		this.sqs = sqs;
 		this.queueUrl = queueUrl;
+		this.dbHelper = dbHelper;
 	}
 	
 	private Message getAMessage() {
@@ -43,8 +43,6 @@ public class WorkerThread implements Runnable {
         } else {
         	return null;
         }
-        
-//        	tweetId = Long.parseLong(msg.getMessageAttributes().get("TweetId").getStringValue());
 	}
 	
 	private static double parseOutSentiment(String xml) {
@@ -106,10 +104,11 @@ public class WorkerThread implements Runnable {
 			e.printStackTrace();
 		}
 		
-		System.out.println(message.getBody() + "\n" + sentiment + "\n");
-		
 		// Insert the sentiment into the database
-		
+		long tweetId = Long.parseLong(message.getMessageAttributes().get("TweetId").getStringValue());
+		dbHelper.updateSentiment(tweetId, sentiment);		
+		System.out.println("WORKER: TweetID: " + tweetId + ", sentiment: " + sentiment);
+	
 		// Send the SNS message
 		
         // Delete the message so it isn't analyzed again
