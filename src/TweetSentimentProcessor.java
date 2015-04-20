@@ -14,6 +14,8 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 
 public class TweetSentimentProcessor {
 	private static final String TweetQueueName = "TweetQueue";
+	private static final String arn = "arn:aws:sns:us-east-1:461013519714:TestTop5";
+	
 	private final int MaxQueueSize = 100;
 	private final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(MaxQueueSize);
 	private final int NumberDBHelpers = 10;
@@ -56,13 +58,16 @@ public class TweetSentimentProcessor {
 		while (true) {
 			if (queue.size() == MaxQueueSize)
 				try {
-					System.out.println("Sleeping ***********************************");
-					Thread.sleep(1000);
+					System.out.println("Sleeping - Send SNS ***********************************");
+					// Send the SNS message
+			        PublishRequest request = new PublishRequest(TweetSentimentProcessor.arn, "UpdateSentimentAttributes");
+			        snsClient.publish(request);
+					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			else
-				executor.execute(new WorkerThread(sqs, snsClient, queueUrl, dbHelpers[id % NumberDBHelpers]));
+				executor.execute(new WorkerThread(sqs, queueUrl, dbHelpers[id % NumberDBHelpers]));
 		}
 		// executor.shutdown();
 	}

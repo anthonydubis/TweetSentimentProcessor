@@ -22,18 +22,15 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
 public class WorkerThread implements Runnable {
 	private static final String apiKey = "4c4269e62c0a19c4fdc84b78093428881101a14b";
-	private static final String arn = "arn:aws:sns:us-east-1:461013519714:TestTop5";
 	
 	private AmazonSQS sqs;
 	private String queueUrl;
-	private AmazonSNSClient snsClient;
 	private Message message;
 	private Double sentiment;
 	private DBHelper dbHelper;
 	
-	public WorkerThread(AmazonSQS sqs, AmazonSNSClient snsClient, String queueUrl, DBHelper dbHelper) {
+	public WorkerThread(AmazonSQS sqs, String queueUrl, DBHelper dbHelper) {
 		this.sqs = sqs;
-		this.snsClient = snsClient;
 		this.queueUrl = queueUrl;
 		this.dbHelper = dbHelper;
 	}
@@ -98,6 +95,9 @@ public class WorkerThread implements Runnable {
 		message = getAMessage();
 		if (message == null) return;
 		
+		// Get the TweetID
+		long tweetId = Long.parseLong(message.getMessageAttributes().get("TweetId").getStringValue());
+		
 		// Get the message sentiment
 		try {
 			sentiment = getSentiment(message.getBody());
@@ -110,13 +110,8 @@ public class WorkerThread implements Runnable {
 		}
 		
 		// Insert the sentiment into the database
-//		dbHelper.updateSentiment(tweetId, sentiment);		
-//		System.out.println("WORKER: TweetID: " + tweetId + ", sentiment: " + sentiment);
-	
-		// Send the SNS message
-		long tweetId = Long.parseLong(message.getMessageAttributes().get("TweetId").getStringValue());
-        PublishRequest request = new PublishRequest(WorkerThread.arn, tweetId + " " + sentiment);
-        snsClient.publish(request);
+		dbHelper.updateSentiment(tweetId, sentiment);		
+		System.out.println("WORKER: TweetID: " + tweetId + ", sentiment: " + sentiment);
 		
         // Delete the message so it isn't analyzed again
        	String messageRecieptHandle = message.getReceiptHandle();
