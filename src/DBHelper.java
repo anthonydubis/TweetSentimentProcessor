@@ -6,6 +6,7 @@ public class DBHelper {
 	private Statement stmt;
 	
 	public DBHelper() {
+		/*
 		setupConnection();
 		try {
 			stmt = conn.createStatement();
@@ -13,6 +14,7 @@ public class DBHelper {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		*/
 	}
 	
 	/*

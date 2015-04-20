@@ -6,6 +6,8 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 
@@ -17,6 +19,7 @@ public class TweetSentimentProcessor {
 	private final int NumberDBHelpers = 10;
 	private final int ThreadPoolSize = 10;
 	private AmazonSQS sqs;
+	private AmazonSNSClient snsClient;
 	private String queueUrl;
 	private ExecutorService executor = new ThreadPoolExecutor(ThreadPoolSize, ThreadPoolSize, 
 			0L, TimeUnit.MILLISECONDS, queue);
@@ -39,6 +42,9 @@ public class TweetSentimentProcessor {
         // Get the TweetQueue URL
         queueUrl = sqs.getQueueUrl(TweetSentimentProcessor.TweetQueueName).getQueueUrl();
         System.out.println(queueUrl);
+        
+        // Setup the SNS Client
+        snsClient = new AmazonSNSClient(credentials);
 	}
 	
 	public void sentimentReceived(long tweetId, double sentiment) {
@@ -56,7 +62,7 @@ public class TweetSentimentProcessor {
 					e.printStackTrace();
 				}
 			else
-				executor.execute(new WorkerThread(sqs, queueUrl, dbHelpers[id % NumberDBHelpers]));
+				executor.execute(new WorkerThread(sqs, snsClient, queueUrl, dbHelpers[id % NumberDBHelpers]));
 		}
 		// executor.shutdown();
 	}
